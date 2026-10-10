@@ -1,0 +1,51 @@
+设置当前仓库的 Git 提交用户信息
+==========================================
+作用范围：为当前git仓库信息单独设置提交的用户配置，不改全局提交的用户配置（--local）
+不影响：全局用户（另一个git身份账户假设为 otherdev / otherdev@company.com 仍保留）
+
+
+一、推荐身份（对应 Git: yourname）
+--------------------------------------
+user.name  = yourname
+user.email = email@example.com
+
+
+二、手动设置（命令行）
+----------------------
+1. 打开 PowerShell
+2. 进入仓库：
+   cd git项目位置
+3. 执行：
+   git config --local user.name  "yourname"
+   git config --local user.email "email@example.com"
+4. 核对：
+   git config --local --get user.name
+   git config --local --get user.email
+   git config --global --get user.name
+   git config --global --get user.email
+
+
+三、脚本设置
+------------
+1. 双击或右键运行：
+   git项目的位置\设置git提交用户.ps1
+2. 看到绿色提示「已写入本仓库提交身份」即完成
+3. 若要改名字/邮箱：用记事本打开该 ps1，改顶部 $name / $email 两行后再运行
+
+
+四、TortoiseGit 里核对（可选）
+------------------------------
+1. 在 git项目的位置 空白处右键 → TortoiseGit → 设置
+2. 左侧：Git → 配置（Config）
+3. 选「本地」（Local）
+4. 查看或填写：
+   Name  = yourname
+   Email = email@example.com
+5. 应用 → 确定
+
+
+五、说明
+--------
+- 已经做过的提交不会自动改作者；只影响「之后新的 commit」
+- 推送到 GitHub 用的是 SSH 密钥身份；这里设置的是提交记录里显示的作者名/邮箱
+- 若 GitHub 提交头像不显示，可到 GitHub → Settings → Emails 确认该邮箱已添加（可勾选 Keep my email private 后改用 noreply 邮箱）
