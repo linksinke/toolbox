@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $repoRoot
 
-# 与 Git提交的 账号 yourname / SSH 公钥备注一致；如需修改只改这两行
+# 与 Git提交的账号 yourname / SSH 公钥备注一致；如需修改只改这两行
 $name  = "yourname"
 $email = "email@example.com"
 
