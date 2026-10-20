@@ -1,0 +1,10 @@
+# Python 运行缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# 导出结果与依赖下载缓存
+output/
+.vendor/
+.py2deps/

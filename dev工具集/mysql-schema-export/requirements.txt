@@ -1,0 +1,20 @@
+# 推荐：使用内置离线依赖，无需 pip
+#   python main.py
+#
+# 目录说明：
+#   main.py / conf.yml     入口与配置
+#   core/                  业务代码
+#   vendor/python2|3/      离线依赖（自动按解释器选择）
+#
+# 更新离线包（需联网）：
+#   python core/prepare_vendor.py
+#
+# 若不用 vendor，可按版本安装到系统环境：
+
+# Python 2.7
+PyMySQL>=0.9.3,<1.0; python_version < "3"
+PyYAML>=5.1,<6.0; python_version < "3"
+
+# Python 3
+PyMySQL>=1.0.0; python_version >= "3"
+PyYAML>=5.1; python_version >= "3"

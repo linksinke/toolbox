@@ -1,0 +1,21 @@
+# 数据源（MySQL）
+source_db:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: '1234'
+  database: test
+  #charset: utf8mb4
+
+# 导出选项
+export:
+  # 输出文件（相对本配置文件所在目录）
+  output: output/schema.sql
+  # 指定表；留空表示导出库内全部表
+  tables: []
+  # 是否在每张表前加 DROP TABLE IF EXISTS
+  include_drop: false
+  # 是否写入文件头（库名、时间、USE、FOREIGN_KEY_CHECKS）
+  include_header: true
+  # 日志级别
+  log_level: INFO
