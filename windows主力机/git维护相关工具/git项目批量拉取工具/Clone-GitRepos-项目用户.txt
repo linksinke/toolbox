@@ -1,0 +1,161 @@
+Git 仓库批量克隆与更新
+==========================================
+配套脚本：Clone-GitRepos-test.ps1
+作用：按配置列表批量克隆 Git 仓库，指定分支和本地文件夹名称；
+已有目录通过检查后，切换到目标分支并执行快进更新。
+流程：初始化 → 校验配置 → 克隆或更新 → 校验结果 → 汇总。
+
+
+一、仓库配置与命名规则
+--------------------------------------
+打开 Clone-GitRepos-test.ps1，修改开头的 $Repositories 配置列表。
+每行一条仓库配置，格式为：
+
+  '仓库地址,分支名称,自定义文件夹名'
+
+示例：
+
+  [string[]]$Repositories = @(
+      'https://github.com/alibaba/AliSQL.git,AliSQL-5.6-master,AliSQL文件夹',
+      'https://github.com/alibaba/MongoShake.git,improve-2.4.16,MongoShake文件夹'
+  ),
+
+上面是脚本 param 参数块中的配置片段，请在原位置修改。
+列表中相邻两项使用英文逗号分隔，最后一项后面不加逗号。
+配置示例中的远程分支是否仍然存在，以实际仓库为准。
+
+保存位置示例：
+  父目录：D:\repos
+  第一项：D:\repos\AliSQL文件夹
+  第二项：D:\repos\MongoShake文件夹
+
+规则：
+- 使用配置中的固定文件夹名称，不自动追加日期时间。
+- 文件夹名只能是单个目录名，不能填写完整路径或包含斜杠。
+- 不同仓库应使用不同文件夹名；三个字段均不能为空或包含逗号。
+- 支持 HTTP / HTTPS / SSH / git:// / file:// 地址，以及本地仓库绝对路径。
+- 默认保存到脚本所在目录，不是终端当前目录；也可通过参数指定父目录。
+
+
+二、基本用法
+--------------------------------------
+1. 确保已安装 Git for Windows，且 git 已加入 PATH。
+   在终端执行以下命令检查：
+
+   git --version
+
+2. 在 PowerShell 中进入脚本所在目录，然后运行：
+
+   .\Clone-GitRepos-test.ps1
+
+3. 指定保存目录：
+
+   .\Clone-GitRepos-test.ps1 -TargetParent 'D:\repos'
+
+4. 运行结束后等待回车，方便查看结果：
+
+   .\Clone-GitRepos-test.ps1 -TargetParent 'D:\repos' -PauseOnExit
+
+5. 在普通 CMD 中也可启动脚本：
+
+   powershell.exe -NoProfile -File "D:\WWWAZT\workspace\work-script-python\02-python工作\我的python工具\000-git项目批量拉取工具\Clone-GitRepos-test.ps1" -TargetParent "D:\repos" -PauseOnExit
+
+脚本按预设列表执行，不会逐个询问地址和保存目录。
+请通过终端运行；双击 .ps1 文件可能只会打开编辑器。
+
+
+三、命令行参数（可选）
+--------------------------------------
+-TargetParent          保存父目录；默认脚本所在目录，不存在时自动创建。
+-Repositories          本次执行使用的仓库配置数组，替代脚本中的默认列表。
+-Depth                 新克隆的历史深度；默认 1，设为 0 表示完整历史。
+-MaxAttempts           网络失败时的最多总尝试次数；默认 3，范围 1～10。
+-RetryDelaySeconds     重试间隔；默认 2 秒，范围 0～60。
+-HeartbeatSeconds      无新输出时的提示间隔；默认 8 秒，范围 1～300。
+-CommandTimeoutSeconds 每条 Git 命令的总时限；默认 900 秒，0 表示不限制，最大 86400 秒。
+-PauseOnExit           结束时等待回车；默认不等待。
+
+常用组合：
+
+  # 克隆完整历史，并在结束后等待回车
+  .\Clone-GitRepos-test.ps1 -TargetParent 'D:\repos' -Depth 0 -PauseOnExit
+
+  # 最多尝试 5 次，每次间隔 5 秒，单条 Git 命令最多运行 30 分钟
+  .\Clone-GitRepos-test.ps1 -MaxAttempts 5 -RetryDelaySeconds 5 -CommandTimeoutSeconds 1800
+
+  # 仅在本次运行中指定仓库列表（以下为 PowerShell 命令）
+  $items = @(
+      'https://github.com/alibaba/AliSQL.git,AliSQL-5.6-master,AliSQL文件夹',
+      'https://github.com/alibaba/MongoShake.git,improve-2.4.16,MongoShake文件夹'
+  )
+  .\Clone-GitRepos-test.ps1 -Repositories $items -TargetParent 'D:\repos'
+
+注意：-Depth 只影响新克隆。对已有浅克隆目录传入 -Depth 0，
+不会自动补全历史。确需补全时，可在对应仓库中手动执行：
+
+  git fetch --unshallow origin
+
+
+四、克隆与更新规则
+--------------------------------------
+目标目录不存在：
+- 克隆到父目录下唯一的 .git-clone-随机标识 暂存目录。
+- 校验分支和 .git 后，再改名为配置的文件夹名。
+- 默认浅克隆目标分支；需要完整历史时指定 -Depth 0。
+
+目标目录已存在：
+- 必须是独立 Git 工作目录，且 origin 地址与配置匹配。
+- 工作区不能有未提交改动或未跟踪文件，也不能有未完成的合并、变基等操作。
+- 先获取指定远程分支，再检查本地分支并切换。
+- 本地没有目标分支时，创建分支并跟踪 origin 上的对应分支。
+- 只允许快进更新，不自动生成合并提交，不执行 reset、clean 或 stash。
+- 本地目标分支有远程未包含的提交、历史分叉或浅克隆历史不足时，停止并提示手动处理。
+- 指定远程分支不存在时直接失败，不回退到 main 或 master。
+
+origin 比对会忽略末尾的斜杠和 .git，但不会把 HTTPS 与 SSH 地址视为同一地址。
+同一仓库换了地址写法时，请先核对配置与已有 origin，再重新运行。
+
+
+五、进度、重试与结果
+--------------------------------------
+- 顶部显示当前处理第几个仓库，下方实时显示 Git 输出。
+- 克隆、获取更新时，无新输出超过设定间隔会提示“仍在等待 Git”。
+- 只对识别到的连接重置、连接失败、部分传输错误等进行重试。
+- 退出码 128 不等于网络错误；分支不存在、鉴权失败等不会盲目重试。
+- 默认最多尝试 3 次，包含第一次执行，不是首次失败后再重试 3 次。
+- 超过单条命令的时限会终止该命令并记录失败；本次仓库任务不自动重试超时。
+- 一个仓库失败后继续处理其他配置，最后汇总成功、失败数量和耗时。
+- 退出码 0 表示全部成功；退出码 1 表示至少一项失败或初始化失败。
+
+查看脚本退出码：
+  PowerShell：$LASTEXITCODE
+  CMD：echo %ERRORLEVEL%
+
+
+六、常见问题与说明
+--------------------------------------
+1. 提示连接重置、无法连接 github.com 或连接超时
+   先在终端单独检查远程连接：
+   git ls-remote https://github.com/alibaba/AliSQL.git
+   如仍失败，检查网络、代理或防火墙；脚本重试不能修复持续的网络故障。
+
+2. 提示目标分支不存在
+   核对配置中的分支名称，可列出远程分支：
+   git ls-remote --heads https://github.com/alibaba/AliSQL.git
+
+3. 提示工作区有改动或本地历史无法快进
+   进入对应仓库执行 git status，先检查并处理本地工作，再重新运行。
+   脚本不会自动丢弃这些内容。
+
+4. 克隆失败后留下 .git-clone- 开头的目录
+   这是本次克隆的暂存目录，会打印完整位置并保留供排查。
+   确认不再需要且没有克隆进程使用它后，可手动删除。
+
+5. 私有仓库或 SSH 仓库无法访问
+   请提前配置好凭据助手或 SSH 密钥，并验证可以直接执行 Git 命令。
+   批处理关闭了 Git 终端凭据提示和 Git Credential Manager 交互提示。
+
+6. 中文显示或脚本启动问题
+   脚本与本文使用 UTF-8 BOM 编码，脚本运行时会设置 UTF-8 控制台输出。
+   需要 Windows PowerShell 5.1 或更新版本。
+   如提示脚本执行被策略阻止，应按本机或组织规定配置执行策略。
